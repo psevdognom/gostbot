@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-from settings import SEARCH_URL
+from .settings import SEARCH_URL
 
 def get_search_list(search_text):
     params = {
