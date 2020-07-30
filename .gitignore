@@ -1,3 +1,4 @@
 /virtualenv/
 /tgbot/settings.py
 /inspectionProfiles/
+./.idea
