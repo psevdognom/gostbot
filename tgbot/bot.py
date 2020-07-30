@@ -1,4 +1,4 @@
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, Message
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 
@@ -6,9 +6,7 @@ from settings import API_TOKEN
 
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
 
-reply_keyboard = [['Age', 'Favourite colour'],
-                  ['Number of siblings', 'Something else...'],
-                  ['Done']]
+reply_keyboard = [['Поиск']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
@@ -21,10 +19,10 @@ def facts_to_str(user_data):
     return "\n".join(facts).join(['\n', '\n'])
 
 
-def start(update, context):
+def start(update: Message, context):
     update.message.reply_text(
-        "Hi! My name is Doctor Botter. I will hold a more complex conversation with you. "
-        "Why don't you tell me something about yourself?",
+        "Приветвую, я бот ебать его в рот могу искать госты по ихх ебанному номеру. "
+        "Нахуя это надо? Просто так нахуй",
         reply_markup=markup)
 
     return CHOOSING
