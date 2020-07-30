@@ -1,14 +1,13 @@
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, Message
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 
 from settings import API_TOKEN
+from parse_tools import get_search_list
 
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
 
-reply_keyboard = [['Age', 'Favourite colour'],
-                  ['Number of siblings', 'Something else...'],
-                  ['Done']]
+reply_keyboard = [['Поиск']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
@@ -21,20 +20,20 @@ def facts_to_str(user_data):
     return "\n".join(facts).join(['\n', '\n'])
 
 
-def start(update, context):
+def start(update: Message, context):
     update.message.reply_text(
-        "Hi! My name is Doctor Botter. I will hold a more complex conversation with you. "
-        "Why don't you tell me something about yourself?",
+        "Приветвую, я бот ебать его в рот могу искать госты по ихх ебанному номеру. "
+        "Нахуя это надо? Просто так нахуй",
         reply_markup=markup)
 
     return CHOOSING
 
 
-def regular_choice(update, context):
+def search_gost(update, context):
     text = update.message.text
-    context.user_data['choice'] = text
+    context.user_data['search_string'] = text
     update.message.reply_text(
-        'Your {}? Yes, I would love to hear about that!'.format(text.lower()))
+        'Введите номер(часть номера) для поиска')
 
     return TYPING_REPLY
 
@@ -49,13 +48,13 @@ def custom_choice(update, context):
 def received_information(update, context):
     user_data = context.user_data
     text = update.message.text
-    category = user_data['choice']
-    user_data[category] = text
-    del user_data['choice']
+    gost_list = get_search_list(user_data['search_string'])
 
-    update.message.reply_text("Neat! Just so you know, this is what you already told me:"
-                              "{} You can tell me more, or change your opinion"
-                              " on something.".format(facts_to_str(user_data)),
+    del user_data['search_string']
+    for gost in gost_list:
+        update.message.reply_text(gost[0] +
+                                  '\n' +
+                                  gost[1],
                               reply_markup=markup)
 
     return CHOOSING
@@ -65,10 +64,6 @@ def done(update, context):
     user_data = context.user_data
     if 'choice' in user_data:
         del user_data['choice']
-
-    update.message.reply_text("I learned these facts about you:"
-                              "{}"
-                              "Until next time!".format(facts_to_str(user_data)))
 
     user_data.clear()
     return ConversationHandler.END
@@ -88,15 +83,13 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            CHOOSING: [MessageHandler(Filters.regex('^(Age|Favourite colour|Number of siblings)$'),
-                                      regular_choice),
-                       MessageHandler(Filters.regex('^Something else...$'),
-                                      custom_choice)
+            CHOOSING: [MessageHandler(Filters.regex('^(Поиск)$'),
+                                      search_gost)
                        ],
 
             TYPING_CHOICE: [
                 MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Done$')),
-                               regular_choice)],
+                               search_gost)],
 
             TYPING_REPLY: [
                 MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Done$')),
