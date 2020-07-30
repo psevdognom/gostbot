@@ -51,6 +51,8 @@ def received_information(update, context):
     gost_list = get_search_list(user_data['search_string'])
 
     del user_data['search_string']
+    update.message.reply_text('Вот все что удалось найти нахуй',
+                              reply_markup=markup)
     for gost in gost_list:
         update.message.reply_text(gost[0] +
                                   '\n' +
