@@ -1,25 +1,29 @@
 import requests
 from lxml import html
-import sqlite3
+from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-conn = sqlite3.connect('gost.db')
-c = conn.cursor()
-c.execute('''
-          CREATE TABLE gosts
-          (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-	      name varchar(50) NOT NULL,
-	      title varchar(250) NOT NULL,
-	      status varchar(15) NOT NULL,
-	      key varchar(30) NOT NULL)
-         ''' )
+Base = declarative_base()
+class Gost(Base):
+    __tablename__ = 'gosts'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    description = Column(String)
+
+engine = create_engine('sqlite:///gosts.db')
+Session = sessionmaker(bind=engine)
+session = Session()
+Base.metadata.create_all(engine)
 
 link = 'https://www.gost.ru'
 page = requests.get(link+"/opendata/7706406291-nationalstandards")
 tree = html.fromstring(page.content)
 link += tree.xpath('//*[@id="242b6628-20e0-459f-b512-2fe12015e7eb"]/div/div[1]/div[5]/div[1]/a/@href')[0]
 file = requests.get(link).content.decode('cp1251').splitlines()
-for line in file:
-    data = line.split(";")
-    c.execute(f"INSERT INTO gosts VALUES({data[0]}, {data[1]}, {data[2]}, {data[3]})")
-conn.commit()
-conn.close()
+for i in range(1, len(file)):
+    data = file[i].split(";")
+    gost = Gost(name=data[0], description=data[1])
+    session.add(gost)
+session.commit()
+
