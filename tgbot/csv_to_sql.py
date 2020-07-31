@@ -26,4 +26,3 @@ for i in range(1, len(file)):
     gost = Gost(name=data[0], description=data[1])
     session.add(gost)
 session.commit()
-
