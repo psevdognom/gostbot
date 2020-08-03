@@ -2,3 +2,4 @@
 /tgbot/settings.py
 /inspectionProfiles/
 ./.idea
+/tgbot/gosts.db
