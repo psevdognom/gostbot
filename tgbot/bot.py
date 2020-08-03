@@ -2,8 +2,8 @@ from telegram import ReplyKeyboardMarkup, Message
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           ConversationHandler)
 
-from settings import API_TOKEN
-from parse_tools import get_search_list
+from tgbot.settings import API_TOKEN
+from tgbot.parse_tools import get_search_list, get_search_list_db
 
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
 
@@ -48,15 +48,15 @@ def custom_choice(update, context):
 def received_information(update, context):
     user_data = context.user_data
     text = update.message.text
-    gost_list = get_search_list(user_data['search_string'])
+    gost_list = get_search_list_db(text)
 
     del user_data['search_string']
     update.message.reply_text('Вот все что удалось найти нахуй',
                               reply_markup=markup)
     for gost in gost_list:
-        update.message.reply_text(gost[0] +
+        update.message.reply_text(gost.name +
                                   '\n' +
-                                  gost[1],
+                                  gost.description,
                               reply_markup=markup)
 
     return CHOOSING

@@ -3,7 +3,9 @@
 
 from bs4 import BeautifulSoup
 import requests
-from settings import SEARCH_URL
+
+from tgbot.settings import SEARCH_URL
+from tgbot.models import Gost, session
 
 def get_search_list(search_text):
     params = {
@@ -19,3 +21,8 @@ def get_search_list(search_text):
     # TODO по аналогии с видео с парсингом сайтов достать из страницы ответ r.content или r.text все найденнные госты
     # пока что только на первой странице и записать в search_list
     # формат [['название', 'текст_описание'], ]
+
+def get_search_list_db(search_text):
+    res = session.query(Gost).filter(Gost.name.like('%' + search_text + '%')).all()
+    res.extend(session.query(Gost).filter(Gost.description.like('%' + search_text + '%')).all())
+    return res
