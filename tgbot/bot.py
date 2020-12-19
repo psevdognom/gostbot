@@ -22,8 +22,7 @@ def facts_to_str(user_data):
 
 def start(update: Message, context):
     update.message.reply_text(
-        "Приветвую, я бот ебать его в рот могу искать госты по ихх ебанному номеру. "
-        "Нахуя это надо? Просто так нахуй",
+        "Приветвую, я бот, могу искать госты по их ключевым словам. ",
         reply_markup=markup)
 
     return CHOOSING
@@ -33,7 +32,7 @@ def search_gost(update, context):
     text = update.message.text
     context.user_data['search_string'] = text
     update.message.reply_text(
-        'Введите номер(часть номера) для поиска')
+        'Введите номер, словао для поиска')
 
     return TYPING_REPLY
 
@@ -51,7 +50,7 @@ def received_information(update, context):
     gost_list = get_search_list_db(text)
 
     del user_data['search_string']
-    update.message.reply_text('Вот все что удалось найти нахуй',
+    update.message.reply_text('Вот все что удалось найти',
                               reply_markup=markup)
     for gost in gost_list:
         update.message.reply_text(gost.name +
