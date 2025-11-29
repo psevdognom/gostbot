@@ -1,4 +1,4 @@
-FROM python:latest
+FROM python:3.14-rc
 EXPOSE 80
 COPY . /app/
 WORKDIR /app/
