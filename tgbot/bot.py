@@ -1,14 +1,26 @@
-from telegram import ReplyKeyboardMarkup, Message
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
-                          ConversationHandler)
+import asyncio
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from tgbot.settings import API_TOKEN
-from tgbot.parse_tools import get_search_list, get_search_list_db
+from tgbot.parse_tools import get_search_list_db
 
-CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
 
-reply_keyboard = [['Поиск']]
-markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+class GostStates(StatesGroup):
+    """FSM states for the conversation."""
+    choosing = State()
+    typing_reply = State()
+    typing_choice = State()
+
+
+reply_keyboard = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text='Поиск')]],
+    one_time_keyboard=True,
+    resize_keyboard=True
+)
 
 
 def facts_to_str(user_data):
@@ -20,96 +32,80 @@ def facts_to_str(user_data):
     return "\n".join(facts).join(['\n', '\n'])
 
 
-def start(update: Message, context):
-    update.message.reply_text(
+async def start(message: Message, state: FSMContext):
+    await message.answer(
         "Приветвую, я бот, могу искать госты по их ключевым словам. ",
-        reply_markup=markup)
-
-    return CHOOSING
-
-
-def search_gost(update, context):
-    text = update.message.text
-    context.user_data['search_string'] = text
-    update.message.reply_text(
-        'Введите номер, словао для поиска')
-
-    return TYPING_REPLY
+        reply_markup=reply_keyboard)
+    await state.set_state(GostStates.choosing)
 
 
-def custom_choice(update, context):
-    update.message.reply_text('Alright, please send me the category first, '
-                              'for example "Most impressive skill"')
+async def search_gost(message: Message, state: FSMContext):
+    text = message.text
+    await state.update_data(search_string=text)
+    await message.answer('Введите номер, словао для поиска')
+    await state.set_state(GostStates.typing_reply)
 
-    return TYPING_CHOICE
+
+async def custom_choice(message: Message, state: FSMContext):
+    await message.answer('Alright, please send me the category first, '
+                         'for example "Most impressive skill"')
+    await state.set_state(GostStates.typing_choice)
 
 
-def received_information(update, context):
-    user_data = context.user_data
-    text = update.message.text
+async def received_information(message: Message, state: FSMContext):
+    text = message.text
     gost_list = get_search_list_db(text)
 
-    del user_data['search_string']
-    update.message.reply_text('Вот все что удалось найти',
-                              reply_markup=markup)
+    await state.update_data(search_string=None)
+    await message.answer('Вот все что удалось найти',
+                         reply_markup=reply_keyboard)
     for gost in gost_list:
-        update.message.reply_text(gost.name +
-                                  '\n' +
-                                  gost.description,
-                              reply_markup=markup)
+        await message.answer(gost.name +
+                             '\n' +
+                             gost.description,
+                             reply_markup=reply_keyboard)
 
-    return CHOOSING
-
-
-def done(update, context):
-    user_data = context.user_data
-    if 'choice' in user_data:
-        del user_data['choice']
-
-    user_data.clear()
-    return ConversationHandler.END
+    await state.set_state(GostStates.choosing)
 
 
-def main():
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
-    updater = Updater(API_TOKEN, use_context=True)
+async def done(message: Message, state: FSMContext):
+    await state.clear()
 
-    # Get the dispatcher to register handlers
-    dp = updater.dispatcher
 
-    # Add conversation handler with the states CHOOSING, TYPING_CHOICE and TYPING_REPLY
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+async def main():
+    # Create the Bot and Dispatcher
+    bot = Bot(token=API_TOKEN)
+    dp = Dispatcher()
 
-        states={
-            CHOOSING: [MessageHandler(Filters.regex('^(Поиск)$'),
-                                      search_gost)
-                       ],
-
-            TYPING_CHOICE: [
-                MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Done$')),
-                               search_gost)],
-
-            TYPING_REPLY: [
-                MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^Done$')),
-                               received_information)],
-        },
-
-        fallbacks=[MessageHandler(Filters.regex('^Done$'), done)]
+    # Register handlers
+    dp.message.register(start, Command('start'))
+    dp.message.register(
+        search_gost,
+        StateFilter(GostStates.choosing),
+        F.text.regexp(r'^(Поиск)$')
+    )
+    dp.message.register(
+        search_gost,
+        StateFilter(GostStates.typing_choice),
+        F.text,
+        ~F.text.startswith('/'),
+        ~F.text.regexp(r'^Done$')
+    )
+    dp.message.register(
+        received_information,
+        StateFilter(GostStates.typing_reply),
+        F.text,
+        ~F.text.startswith('/'),
+        ~F.text.regexp(r'^Done$')
+    )
+    dp.message.register(
+        done,
+        F.text.regexp(r'^Done$')
     )
 
-    dp.add_handler(conv_handler)
-
-    # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
+    # Start the Bot with polling
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
