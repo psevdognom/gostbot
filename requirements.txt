@@ -1,8 +1,11 @@
-bs4==0.0.1
-soupsieve==2.0.1
-requests~=2.23.0
-python-telegram-bot==12.8
+# HTTP and web parsing
+requests>=2.32.0
+beautifulsoup4>=4.12.0
+soupsieve>=2.5.0
+lxml>=5.3.0
 
-lxml~=4.5.0
-SQLAlchemy~=1.3.18
-beautifulsoup4~=4.8.2
+# Telegram bot framework
+python-telegram-bot>=13.15,<14.0
+
+# Database
+SQLAlchemy>=2.0.0
