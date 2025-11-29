@@ -13,7 +13,6 @@ class GostStates(StatesGroup):
     """FSM states for the conversation."""
     choosing = State()
     typing_reply = State()
-    typing_choice = State()
 
 
 reply_keyboard = ReplyKeyboardMarkup(
@@ -21,15 +20,6 @@ reply_keyboard = ReplyKeyboardMarkup(
     one_time_keyboard=True,
     resize_keyboard=True
 )
-
-
-def facts_to_str(user_data):
-    facts = list()
-
-    for key, value in user_data.items():
-        facts.append('{} - {}'.format(key, value))
-
-    return "\n".join(facts).join(['\n', '\n'])
 
 
 async def start(message: Message, state: FSMContext):
@@ -44,12 +34,6 @@ async def search_gost(message: Message, state: FSMContext):
     await state.update_data(search_string=text)
     await message.answer('Введите номер, словао для поиска')
     await state.set_state(GostStates.typing_reply)
-
-
-async def custom_choice(message: Message, state: FSMContext):
-    await message.answer('Alright, please send me the category first, '
-                         'for example "Most impressive skill"')
-    await state.set_state(GostStates.typing_choice)
 
 
 async def received_information(message: Message, state: FSMContext):
@@ -83,13 +67,6 @@ async def main():
         search_gost,
         StateFilter(GostStates.choosing),
         F.text.regexp(r'^(Поиск)$')
-    )
-    dp.message.register(
-        search_gost,
-        StateFilter(GostStates.typing_choice),
-        F.text,
-        ~F.text.startswith('/'),
-        ~F.text.regexp(r'^Done$')
     )
     dp.message.register(
         received_information,
